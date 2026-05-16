@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: auto-doc-thinker-backend
+    env: python
+    root: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app -b 0.0.0.0:$PORT
+    plan: free

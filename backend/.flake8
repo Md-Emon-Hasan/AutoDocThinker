@@ -1,0 +1,19 @@
+[flake8]
+max-line-length = 120
+max-complexity = 10
+extend-ignore = E203, W503, E501
+per-file-ignores =
+    __init__.py:F401,F403
+    tests/*:S101,F401,F811
+exclude =
+    .git,
+    .venv,
+    __pycache__,
+    build,
+    dist,
+    vector_db,
+    uploads,
+    *.egg-info
+statistics = true
+count = true
+show-source = true

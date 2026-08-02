@@ -10,6 +10,7 @@ os.environ.setdefault("GROQ_API_KEY", "test-key-for-pytest")
 from unittest.mock import MagicMock, patch  # noqa: E402
 
 from app.dependencies import container  # noqa: E402
+from app.indexing.chroma_store import ChromaStore  # noqa: E402
 from app.indexing.hybrid_index import HybridIndex  # noqa: E402
 from app.ingestion.document import Document  # noqa: E402
 from app.rag.formatting import format_context_with_sources  # noqa: E402
@@ -41,6 +42,28 @@ def reset_container():
     container.cache_clear()
     yield
     container.cache_clear()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_chroma_store(tmp_path, monkeypatch):
+    """Point ChromaStore's default persist directory at a per-test tmp dir.
+
+    Without this, the dense store's on-disk Chroma collection would persist
+    across tests (unlike the in-memory HybridIndex, which is fresh every
+    test), leaking one test's ingested documents into another's dense
+    search results, and would grow an on-disk directory in the real repo
+    on every test run.
+    """
+    original_init = ChromaStore.__init__
+    chroma_dir = tmp_path / "chroma"
+
+    def _scoped_init(self, domain="general", persist_directory=None):
+        original_init(
+            self, domain=domain, persist_directory=persist_directory or chroma_dir
+        )
+
+    monkeypatch.setattr(ChromaStore, "__init__", _scoped_init)
+    yield
 
 
 @pytest.fixture()

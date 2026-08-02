@@ -147,6 +147,7 @@ logs/
 app.log
 data/*.pdf
 data/*.docx
+data/vector_store/
 
 # OS
 .DS_Store

@@ -12,6 +12,11 @@ class BaseState(TypedDict, total=False):
     sources: list[dict[str, Any]]
     confidence: float
     retry_count: int
+    # Callable[[list[Any]], tuple[str, list[dict[str, Any]]]] supplied by
+    # RAGService.query(); declared here (rather than left undeclared) so
+    # LangGraph's StateGraph schema doesn't silently drop it when merging a
+    # node's returned state update back into the graph's tracked channels.
+    formatter: Any
 
 
 class NaiveState(BaseState, total=False):

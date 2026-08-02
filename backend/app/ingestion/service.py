@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 from typing import Any, cast
 
 from app.ingestion.chunk_optimizer import ChunkOptimizer
 from app.ingestion.document_processor import DocumentProcessor
 from app.ingestion.supported_types import extension_to_type
+
+logger = logging.getLogger(__name__)
 
 
 class IngestionService:
@@ -12,10 +15,12 @@ class IngestionService:
         index,
         processor: DocumentProcessor | None = None,
         optimizer: ChunkOptimizer | None = None,
+        dense_index=None,
     ) -> None:
         self.index = index
         self.processor = processor or DocumentProcessor()
         self.optimizer = optimizer or ChunkOptimizer()
+        self.dense_index = dense_index
 
     def ingest(
         self, source: str, file_type: str, display_name: str | None = None
@@ -23,6 +28,18 @@ class IngestionService:
         docs = self.processor.load(source, file_type, display_name=display_name)
         chunks = self.optimizer.split(docs, file_type)
         added = self.index.add(chunks)
+        if self.dense_index is not None and added:
+            # Best-effort: a dense-store hiccup must not break ingestion,
+            # which today is sparse-index-only behavior that many existing
+            # tests depend on.
+            try:
+                self.dense_index.add(chunks)
+            except Exception:
+                logger.exception(
+                    "Dense index write failed for source=%s; continuing with "
+                    "sparse-only ingestion",
+                    source,
+                )
         return {
             "chunks_added": added,
             "total_chunks": self.index.size,

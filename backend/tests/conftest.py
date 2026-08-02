@@ -19,8 +19,8 @@ from app.rag.formatting import format_context_with_sources  # noqa: E402
 class _FakeGroqClient:
     """Stub GroqClient that never calls the real Groq API."""
 
-    def __init__(self):
-        self._model = "test-model"
+    def __init__(self, model: str | None = None):
+        self._model = model or "test-model"
 
     def answer(self, question: str, context: str, domain_prompt: str) -> str:
         return f"mock answer for: {question}"

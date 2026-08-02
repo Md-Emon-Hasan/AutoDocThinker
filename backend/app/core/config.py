@@ -22,6 +22,21 @@ class RAGConfig:
     crag_max_retries: int = 2
     app_name: str = "AutoDocThinker"
     version: str = "3.0.0"
+    # Stage 0: dense-store embedding hook, unused by default (see
+    # app/indexing/embedding_function.py for why no real ML embedding
+    # model is wired in yet).
+    embedding_model: str | None = None
+    # Stage 1: LLM gateway task -> model routing. Defaults preserve
+    # today's single-model behavior (GROQ_MODEL env var, or the
+    # historical default) for every task until explicitly configured
+    # otherwise.
+    task_model_map: dict[str, str] = field(
+        default_factory=lambda: {
+            "answer_generation": os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+        }
+    )
+    escalated_model_map: dict[str, str] = field(default_factory=dict)
+    complexity_escalation_threshold: float = 0.7
 
 
 def get_config() -> RAGConfig:

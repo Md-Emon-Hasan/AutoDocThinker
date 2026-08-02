@@ -5,9 +5,9 @@ from groq import RateLimitError as GroqRateLimitError
 
 
 class GroqClient:
-    def __init__(self):
+    def __init__(self, model: str | None = None):
         self._client = Groq(api_key=os.environ["GROQ_API_KEY"])
-        self._model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        self._model = model or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
     def answer(self, question: str, context: str, domain_prompt: str) -> str:
         if context:

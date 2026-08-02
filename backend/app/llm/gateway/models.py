@@ -4,14 +4,10 @@ from typing import Protocol
 
 
 class TaskCategory(str, Enum):
-    """Declared purpose of an LLM call, used to route to a sized model.
-
-    Only ANSWER_GENERATION has a real call site today (RAGService's
-    answer-generation path via GroqClient). The rest are reserved for
-    later stages (Stage 3's verifier/critic, a future real query-rewrite
-    or wikipedia-summarization LLM call) so the category taxonomy doesn't
-    need another breaking change when those call sites appear.
-    """
+    """Declared purpose of an LLM call, used to route to a task-specific
+    model. QUERY_REWRITE/COMPRESSION/RELEVANCE_SCORING/TITLE_GENERATION/
+    SELF_RAG_CRITIQUE have no real call site yet -- reserved so adding one
+    later doesn't need another breaking change to this enum."""
 
     ANSWER_GENERATION = "answer_generation"
     QUERY_REWRITE = "query_rewrite"
@@ -20,6 +16,8 @@ class TaskCategory(str, Enum):
     TITLE_GENERATION = "title_generation"
     VERIFICATION = "verification"
     SELF_RAG_CRITIQUE = "self_rag_critique"
+    MEMORY_EXTRACTION = "memory_extraction"
+    DEEP_PLANNING = "deep_planning"
 
 
 @dataclass(frozen=True)
@@ -45,4 +43,5 @@ class Provider(Protocol):
     provider with zero code changes (duck typing, no inheritance needed).
     """
 
-    def answer(self, question: str, context: str, domain_prompt: str) -> str: ...
+    def answer(self, question: str, context: str, domain_prompt: str) -> str:
+        raise NotImplementedError

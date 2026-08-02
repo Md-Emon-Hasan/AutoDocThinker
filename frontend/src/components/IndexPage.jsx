@@ -13,7 +13,7 @@ function ConfirmModal({ name, onConfirm, onCancel }) {
         </div>
         <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Remove Document</div>
         <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 22 }}>
-          Remove <strong>"{name}"</strong> from the index? This cannot be undone. Re-upload the file to index it again.
+          Remove <strong>&ldquo;{name}&rdquo;</strong> from the index? This cannot be undone. Re-upload the file to index it again.
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onCancel}>Cancel</button>
@@ -32,6 +32,7 @@ export default function IndexPage({ onNavigate }) {
   const [clearing, setClearing] = useState(false);
   const [removingId, setRemovingId] = useState(null);
   const [confirmTarget, setConfirmTarget] = useState(null); // {source_id, name}
+  const [error, setError] = useState(null);
 
   async function fetchStatus() {
     setLoading(true);
@@ -44,17 +45,19 @@ export default function IndexPage({ onNavigate }) {
 
   async function handleRemoveSource(source_id) {
     setRemovingId(source_id);
+    setError(null);
     try {
       await api.removeSource(source_id);
       await fetchStatus();
-    } catch (e) { console.error(e); }
+    } catch (e) { setError(e.message || 'Failed to remove document'); }
     finally { setRemovingId(null); setConfirmTarget(null); }
   }
 
   async function handleClearAll() {
     setClearing(true);
+    setError(null);
     try { await api.clearIndex(); await fetchStatus(); }
-    catch (e) { console.error(e); }
+    catch (e) { setError(e.message || 'Failed to clear index'); }
     finally { setClearing(false); setConfirmTarget(null); }
   }
 
@@ -79,6 +82,20 @@ export default function IndexPage({ onNavigate }) {
           onConfirm={() => confirmTarget.all ? handleClearAll() : handleRemoveSource(confirmTarget.source_id)}
           onCancel={() => setConfirmTarget(null)}
         />
+      )}
+
+      {error && (
+        <div style={{
+          background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.25)', color: '#ef4444',
+          borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, marginBottom: 16,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <i className="fa-solid fa-triangle-exclamation" />
+          <span style={{ flex: 1 }}>{error}</span>
+          <button className="btn btn-sm" onClick={() => setError(null)} style={{ background: 'transparent', border: 'none', color: '#ef4444' }}>
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </div>
       )}
 
       {/* Stats */}

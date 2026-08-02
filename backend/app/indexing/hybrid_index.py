@@ -6,6 +6,7 @@ from rank_bm25 import BM25Okapi
 from app.indexing.deduplication import already_ingested
 from app.indexing.locking import new_lock
 from app.indexing.tokenizer import tokenize
+from app.retrieval.filters import matches_filter
 
 DEFAULT_SCOPE = "shared"
 
@@ -16,6 +17,7 @@ class HybridIndex:
         self._chunks: list[Any] = []
         self._source_ids: set[str] = set()
         self._source_map: dict[str, str] = {}  # source_id → display name
+        self._version = 0
 
     def _candidates(self, metadata_filter: dict | None) -> list[Any]:
         """Restrict the corpus to matching documents BEFORE BM25 scoring.
@@ -27,11 +29,7 @@ class HybridIndex:
         if not metadata_filter:
             return list(self._chunks)
         return [
-            doc
-            for doc in self._chunks
-            if not any(
-                doc.metadata.get(key) != val for key, val in metadata_filter.items()
-            )
+            doc for doc in self._chunks if matches_filter(doc.metadata, metadata_filter)
         ]
 
     def clear(self) -> None:
@@ -39,6 +37,7 @@ class HybridIndex:
             self._chunks = []
             self._source_ids = set()
             self._source_map = {}
+            self._version += 1
 
     def add(self, chunks: list) -> int:
         if not chunks:
@@ -56,6 +55,7 @@ class HybridIndex:
                 self._chunks.append(chunk)
                 self._source_ids.add(sid)
                 self._source_map[sid] = chunk.metadata.get("source", sid)
+            self._version += 1
             return len(chunks)
 
     def remove_source(self, source_id: str) -> bool:
@@ -67,7 +67,48 @@ class HybridIndex:
             ]
             self._source_ids.discard(source_id)
             self._source_map.pop(source_id, None)
+            self._version += 1
             return True
+
+    def remove_scope(self, scope: str) -> int:
+        """Remove every chunk belonging to ``scope``. Returns count removed.
+
+        Used for session lifecycle: deleting a session removes its chunks
+        from the index without needing to know its individual source ids.
+        """
+        with self._lock:
+            keep, removed = [], 0
+            surviving_sources: set[str] = set()
+            for chunk in self._chunks:
+                if chunk.metadata.get("scope") == scope:
+                    removed += 1
+                else:
+                    keep.append(chunk)
+                    sid = chunk.metadata.get("source_id")
+                    if sid:
+                        surviving_sources.add(sid)
+            if removed:
+                self._chunks = keep
+                self._source_ids &= surviving_sources
+                self._source_map = {
+                    sid: name
+                    for sid, name in self._source_map.items()
+                    if sid in surviving_sources
+                }
+                self._version += 1
+            return removed
+
+    @property
+    def version(self) -> int:
+        return self._version
+
+    @property
+    def scope_counts(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for chunk in self._chunks:
+            scope = chunk.metadata.get("scope", DEFAULT_SCOPE)
+            counts[scope] = counts.get(scope, 0) + 1
+        return counts
 
     def search(
         self, query: str, k: int = 8, metadata_filter: dict | None = None

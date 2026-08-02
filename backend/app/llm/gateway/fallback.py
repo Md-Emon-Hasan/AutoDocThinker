@@ -29,14 +29,9 @@ _NON_RETRYABLE_MARKERS = (
 
 
 def is_retryable(exc: Exception) -> bool:
-    """Classify a provider failure as retryable or not.
-
-    Retryable: timeout, 429, 5xx, connection error. Not retryable: a
-    400/422 or auth failure -- those must fail fast rather than cascade
-    down the chain burning quota on a request that will fail identically
-    everywhere. Anything unrecognized defaults to non-retryable, the
-    conservative choice.
-    """
+    """Retryable: timeout, 429, 5xx, connection error. Not retryable:
+    400/422/auth -- those fail fast rather than cascade down the chain.
+    Anything unrecognized defaults to non-retryable."""
     if isinstance(exc, (TimeoutError, ConnectionError, OSError)):
         return True
     if isinstance(exc, (ValueError, KeyError)):
@@ -53,14 +48,8 @@ def with_fallback(
     max_attempts: int = 3,
 ) -> GatewayResponse:
     """Try providers in order, retrying retryable failures with backoff.
-
-    A non-retryable failure (400/422/auth) advances to the next provider
-    immediately with no same-provider retry. On full chain exhaustion,
-    falls back to fallback_answer() rather than raising -- this is the
-    consolidation of app/llm/fallback.py into the gateway: it is now
-    genuinely called, as the gateway's last-resort safety net, instead of
-    being dead code with no callers.
-    """
+    A non-retryable failure advances to the next provider immediately.
+    On full chain exhaustion, falls back to fallback_answer()."""
     attempts_log: list[tuple[str, str]] = []
     total_attempts = 0
     for provider in providers:

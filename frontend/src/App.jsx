@@ -19,22 +19,50 @@ function lsGet(key, fallback) {
   try { return localStorage.getItem(key) || fallback; } catch { return fallback; }
 }
 function lsSet(key, val) {
-  try { localStorage.setItem(key, val); } catch {}
+  try { localStorage.setItem(key, val); } catch { /* localStorage unavailable (e.g. private mode); ignore */ }
 }
 
 export default function App() {
   const [page, setPage] = useState('chat');
   const [serverUp, setServerUp] = useState(null); // null = checking
   const [domains, setDomains] = useState([]);
-  const [ragModes, setRagModes] = useState(['naive', 'advanced', 'crag', 'self_rag']);
+  const [ragModes, setRagModes] = useState(['naive', 'advanced', 'crag', 'self_rag', 'deep']);
   const [domain, setDomain] = useState(() => lsGet('adt_domain', 'general'));
   const [ragMode, setRagMode] = useState(() => lsGet('adt_rag_mode', 'advanced'));
+  // A single chat session backs both the Chat page and document scoping on
+  // the Ingest page -- created once and reused (not per-ChatPage-mount) so
+  // that documents uploaded via Ingest land in the same retrieval scope the
+  // Chat page queries. See backend/app/retrieval/filters.py's scope
+  // isolation comment: an upload with no scope goes to a shared "anonymous"
+  // bucket that a session-scoped chat query never reaches.
+  const [sessionId, setSessionId] = useState(null);
 
   useEffect(() => {
     api.getHealth().then(() => setServerUp(true)).catch(() => setServerUp(false));
     api.getDomains().then(setDomains).catch(() => {});
     api.getRagModes().then((r) => setRagModes(r.modes || [])).catch(() => {});
+
+    (async () => {
+      const stored = lsGet('adt_session_id', '');
+      if (stored) {
+        try {
+          await api.getSession(stored);
+          setSessionId(stored);
+          return;
+        } catch { /* stale/expired session (e.g. backend restarted); fall through to create a new one */ }
+      }
+      try {
+        const sess = await api.createSession();
+        setSessionId(sess.session_id);
+        lsSet('adt_session_id', sess.session_id);
+      } catch { /* backend offline; ChatPage/IngestPage handle absence of a session id */ }
+    })();
   }, []);
+
+  function handleSessionChange(id) {
+    setSessionId(id);
+    lsSet('adt_session_id', id);
+  }
 
   function handleDomainChange(val) {
     setDomain(val);
@@ -86,11 +114,12 @@ export default function App() {
             domains={domains} ragModes={ragModes} onNavigate={setPage}
             domain={domain} ragMode={ragMode}
             onDomainChange={handleDomainChange} onRagModeChange={handleRagModeChange}
+            sessionId={sessionId} onSessionChange={handleSessionChange}
           />
         ) : (
           <div className="main-body">
             {page === 'domains' && <DomainsPage />}
-            {page === 'ingest' && <IngestPage onNavigate={setPage} />}
+            {page === 'ingest' && <IngestPage onNavigate={setPage} sessionId={sessionId} />}
             {page === 'index' && <IndexPage onNavigate={setPage} />}
             {page === 'admin' && <AdminPage />}
           </div>

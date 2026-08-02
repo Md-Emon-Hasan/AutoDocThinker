@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "8000"))
+    port = int(os.environ.get("PORT", "8010"))
     print(f"\n{'='*52}")
     print(f"  AutoDocThinker backend  ->  http://localhost:{port}")
     print(f"  Routes: /ingest/upload  /ingest/text  /ingest/source")

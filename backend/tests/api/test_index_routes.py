@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 from app.application import create_app
 from app.dependencies import container
 
+ADMIN_TOKEN_HEADER = {"X-Admin-Token": "test-admin-token-for-pytest"}
+
 # ── fixtures ─────────────────────────────────────────────────────────────────
 
 
@@ -40,10 +42,16 @@ class TestIndexRoutes:
         assert response.json()["total_chunks"] >= 1
 
     def test_clear_index(self, client):
-        assert client.delete("/index").json() == {"cleared": True}
+        response = client.delete("/index", headers=ADMIN_TOKEN_HEADER)
+        assert response.json() == {"cleared": True}
+
+    def test_clear_index_requires_admin_token(self, client):
+        assert client.delete("/index").status_code == 401
 
     def test_remove_source_not_found_returns_404(self, client):
-        response = client.delete("/index/source/nonexistent")
+        response = client.delete(
+            "/index/source/nonexistent", headers=ADMIN_TOKEN_HEADER
+        )
         assert response.status_code == 404
 
     def test_remove_source_found(self, client, tmp_path):
@@ -52,7 +60,7 @@ class TestIndexRoutes:
         client.post("/ingest/source", json={"source": str(source), "file_type": "txt"})
         details = client.get("/index/status").json()["source_details"]
         sid = details[0]["source_id"]
-        response = client.delete(f"/index/source/{sid}")
+        response = client.delete(f"/index/source/{sid}", headers=ADMIN_TOKEN_HEADER)
         assert response.json()["removed"] is True
 
 

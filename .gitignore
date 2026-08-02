@@ -148,6 +148,10 @@ app.log
 data/*.pdf
 data/*.docx
 data/vector_store/
+data/governance_audit.sqlite3
+data/hitl.sqlite3
+data/memory.sqlite3
+data/chroma_memory/
 
 # OS
 .DS_Store

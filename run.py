@@ -57,7 +57,7 @@ def main():
     threading.Thread(target=stream, args=(be, "backend"), daemon=True).start()
     threading.Thread(target=stream, args=(fe, "frontend"), daemon=True).start()
 
-    print("\n  Backend  ->  http://localhost:8000")
+    print("\n  Backend  ->  http://localhost:8010")
     print("  Frontend ->  http://localhost:5173")
     print("\n  Press Ctrl+C to stop.\n")
 

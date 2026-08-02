@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.dependencies import container
 from app.schemas.ingestion import IngestRequest, IngestResponse, IngestTextRequest
@@ -13,13 +13,17 @@ _UPLOAD_TYPES = {".pdf": "pdf", ".docx": "docx", ".txt": "txt"}
 @router.post("/source", response_model=IngestResponse)
 def ingest_source(payload: IngestRequest):
     try:
-        return container()["ingestion"].ingest(payload.source, payload.file_type)
+        return container()["ingestion"].ingest(
+            payload.source, payload.file_type, scope=payload.scope
+        )
     except (OSError, RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/upload", response_model=IngestResponse)
-async def ingest_upload(file: UploadFile = File(...)):  # noqa: B008
+async def ingest_upload(
+    file: UploadFile = File(...), scope: str | None = Form(None)  # noqa: B008
+):
     # Use only the basename to prevent path traversal
     original_name = Path(file.filename or "upload").name
     suffix = Path(original_name).suffix.lower()
@@ -48,7 +52,7 @@ async def ingest_upload(file: UploadFile = File(...)):  # noqa: B008
 
     try:
         return box["ingestion"].ingest(
-            str(save_path), file_type, display_name=original_name
+            str(save_path), file_type, display_name=original_name, scope=scope
         )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -60,7 +64,10 @@ def ingest_text(payload: IngestTextRequest):
         raise HTTPException(status_code=400, detail="Text content cannot be empty")
     try:
         return container()["ingestion"].ingest(
-            payload.text, "text", display_name=payload.title or "pasted_text"
+            payload.text,
+            "text",
+            display_name=payload.title or "pasted_text",
+            scope=payload.scope,
         )
     except (OSError, RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -7,8 +7,12 @@ const TABS = [
   { id: 'text',   label: 'Paste Text',  icon: 'fa-paste' },
 ];
 
-export default function IngestPage({ onNavigate }) {
+export default function IngestPage({ onNavigate, sessionId }) {
   const [tab, setTab] = useState('upload');
+  // Tag every ingested document with the same scope the Chat page queries
+  // (its session id) so uploads are immediately answerable -- without this,
+  // documents land in a default scope no chat session ever reaches.
+  const scope = sessionId ? `session:${sessionId}` : undefined;
 
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
@@ -32,6 +36,7 @@ export default function IngestPage({ onNavigate }) {
     try {
       const fd = new FormData();
       fd.append('file', file);
+      if (scope) fd.append('scope', scope);
       setResult(await api.ingestUpload(fd));
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -43,7 +48,7 @@ export default function IngestPage({ onNavigate }) {
     e.preventDefault();
     if (!url.trim()) return;
     reset(); setLoading(true);
-    try { setResult(await api.ingestSource({ source: url.trim(), file_type: 'url' })); setUrl(''); }
+    try { setResult(await api.ingestSource({ source: url.trim(), file_type: 'url', scope })); setUrl(''); }
     catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }
@@ -53,7 +58,7 @@ export default function IngestPage({ onNavigate }) {
     if (!text.trim()) return;
     reset(); setLoading(true);
     try {
-      setResult(await api.ingestText({ text: text.trim(), title: textTitle.trim() || 'pasted_text' }));
+      setResult(await api.ingestText({ text: text.trim(), title: textTitle.trim() || 'pasted_text', scope }));
       setText(''); setTextTitle('');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }

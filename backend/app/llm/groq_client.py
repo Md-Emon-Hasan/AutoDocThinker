@@ -9,6 +9,10 @@ class GroqClient:
         self._client = Groq(api_key=os.environ["GROQ_API_KEY"])
         self._model = model or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
+    @property
+    def model_name(self) -> str:
+        return self._model
+
     def answer(self, question: str, context: str, domain_prompt: str) -> str:
         if context:
             user_content = (
@@ -43,7 +47,10 @@ class GroqClient:
                     {"role": "system", "content": domain_prompt},
                     {"role": "user", "content": user_content},
                 ],
-                temperature=0.3,
+                # Stage 2: 0.0 rather than the original 0.3 -- answer
+                # caching requires deterministic generation, and this is
+                # the only answer-generation call site today.
+                temperature=0.0,
                 max_tokens=4096,
             )
             return response.choices[0].message.content or ""

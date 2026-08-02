@@ -1,4 +1,4 @@
-RAG_MODES = ("naive", "advanced", "crag", "self_rag")
+RAG_MODES = ("naive", "advanced", "crag", "self_rag", "deep")
 
 
 def ensure_mode(mode: str) -> str:

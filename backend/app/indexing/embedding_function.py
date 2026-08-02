@@ -1,13 +1,9 @@
 """A deterministic, dependency-free embedding function for ChromaDB.
 
-Chroma's bundled "default" embedding function downloads an ONNX MiniLM
-model from the network on first use. That violates the test suite's
-no-network-calls constraint and is far too slow to construct once per test
-(confirmed empirically: initialization did not complete within two
-minutes). This hashing-trick embedding function needs no model download,
-no torch/sentence-transformers dependency, and no network access, while
-still producing genuine (if semantically weak) dense vectors that Chroma
-can index and query like any other embedding.
+Chroma's bundled default embedding function downloads an ONNX model over
+the network on first use, which violates the test suite's no-network
+constraint. This hashing-trick function needs no model download and no
+torch/sentence-transformers dependency.
 """
 
 import hashlib
@@ -18,15 +14,19 @@ from chromadb.api.types import EmbeddingFunction as ChromaEmbeddingFunction
 from chromadb.api.types import Embeddings
 
 from app.indexing.tokenizer import tokenize
+from app.utils.cache import MISSING
+from app.utils.hashing import sha1_short
 
 DEFAULT_DIMENSIONS = 256
 
 
 class HashingEmbeddingFunction(ChromaEmbeddingFunction):
-    """Bag-of-hashed-tokens embedding, L2-normalized."""
+    """Bag-of-hashed-tokens embedding, L2-normalized. Accepts an optional
+    cache layer so repeated text skips recomputation."""
 
-    def __init__(self, dimensions: int = DEFAULT_DIMENSIONS) -> None:
+    def __init__(self, dimensions: int = DEFAULT_DIMENSIONS, cache=None) -> None:
         self._dimensions = dimensions
+        self._cache = cache
 
     def __call__(self, input: Documents) -> Embeddings:
         return [self._embed(text) for text in input]
@@ -45,9 +45,21 @@ class HashingEmbeddingFunction(ChromaEmbeddingFunction):
         return {"dimensions": self._dimensions}
 
     def _embed(self, text: str) -> list[float]:
+        cache_key = None
+        if self._cache is not None:
+            normalized = " ".join(tokenize(text))
+            cache_key = f"{sha1_short(normalized)}::{self.name()}::{self._dimensions}"
+            cached = self._cache.get(cache_key)
+            if cached is not MISSING:
+                return cached
+
         vector = [0.0] * self._dimensions
         for token in tokenize(text):
             digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
             vector[int(digest, 16) % self._dimensions] += 1.0
         norm = math.sqrt(sum(v * v for v in vector)) or 1.0
-        return [v / norm for v in vector]
+        result = [v / norm for v in vector]
+
+        if self._cache is not None:
+            self._cache.set(cache_key, result)
+        return result

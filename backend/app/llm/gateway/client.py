@@ -1,6 +1,7 @@
 from app.core.config import RAGConfig
 from app.llm.gateway.fallback import with_fallback
 from app.llm.gateway.models import GatewayRequest, Provider, TaskCategory
+from app.llm.gateway.routing import resolve_model
 
 
 class LLMGateway:
@@ -41,6 +42,14 @@ class LLMGateway:
         response = with_fallback(providers, request, self._max_attempts)
         return response.text
 
+    def model_name(
+        self, task: TaskCategory, complexity_hint: float | None = None
+    ) -> str:
+        """Resolve the model configured for ``task`` -- used by RAGService
+        to build the Stage 2 answer-cache key without needing to
+        introspect providers directly."""
+        return resolve_model(task, self._config, complexity_hint)
+
 
 class TaskBoundClient:
     """Adapter binding a gateway call to one fixed task category.
@@ -57,3 +66,7 @@ class TaskBoundClient:
 
     def answer(self, question: str, context: str, domain_prompt: str) -> str:
         return self._gateway.answer(question, context, domain_prompt, self._task)
+
+    @property
+    def model_name(self) -> str:
+        return self._gateway.model_name(self._task)

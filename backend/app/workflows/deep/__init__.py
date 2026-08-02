@@ -1,9 +1,9 @@
-"""Scaffold package for the future `deep` orchestration workflow.
+"""Stage 6: the `deep` orchestration workflow -- a fifth RAG mode.
 
-Deliberately NOT imported by app.rag.service, app.rag.modes, or any API
-route in Stage 0 — registering it as a reachable fifth mode is Stage 6
-scope. This package exists only so Stage 6 has the same on-disk shape
-(graph.py/nodes.py/edges.py/compat.py) as the other four workflows.
+Planner -> scoped sub-agents (parallel, budget-capped) -> synthesis. See
+app/orchestration/ for the real implementation; this package just gives
+it the same on-disk shape (graph.py/nodes.py/edges.py/compat.py) as the
+other four workflows.
 """
 
 from app.workflows.deep.compat import build_deep_rag

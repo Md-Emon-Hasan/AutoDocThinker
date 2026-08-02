@@ -34,7 +34,7 @@ def seeded_client(tmp_path):
 class TestRagRoutes:
     def test_rag_modes_lists_all_modes(self, seeded_client):
         modes = seeded_client.get("/rag-modes").json()["modes"]
-        assert set(modes) == {"naive", "advanced", "crag", "self_rag"}
+        assert set(modes) == {"naive", "advanced", "crag", "self_rag", "deep"}
 
     def test_rag_profiles_returns_profiles(self, seeded_client):
         response = seeded_client.get("/rag-profiles")

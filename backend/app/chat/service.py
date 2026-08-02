@@ -5,9 +5,10 @@ from app.rag.modes import ensure_mode
 
 
 class ChatService:
-    def __init__(self, rag_service) -> None:
+    def __init__(self, rag_service, history_store=None) -> None:
         self.rag_service = rag_service
         self.sessions: dict[str, ChatSession] = {}
+        self.history_store = history_store
 
     def create(self) -> ChatSession:
         session = ChatSession()
@@ -33,8 +34,18 @@ class ChatService:
         self, session_id: str, message: str, metadata_filter=None
     ) -> dict[str, Any]:
         session = self.get(session_id)
+        # Every chat session is automatically its own retrieval scope --
+        # the whole point of chat sessions is stability without the
+        # client having to manage a scope token itself.
         result = self.rag_service.query(
-            message, session.domain, session.rag_mode, session.history, metadata_filter
+            message,
+            session.domain,
+            session.rag_mode,
+            session.history,
+            metadata_filter,
+            f"session:{session.id}",
         )
         session.history = result["history"]
+        if self.history_store is not None:
+            self.history_store.set(session_id, session.history)
         return cast(dict[str, Any], result)

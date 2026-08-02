@@ -23,6 +23,7 @@ class ChromaStore:
         self,
         domain: str = "general",
         persist_directory: Path | str | None = None,
+        cache_manager=None,
     ) -> None:
         self.domain = domain
         self.persisted = False
@@ -33,9 +34,14 @@ class ChromaStore:
         )
         directory.mkdir(parents=True, exist_ok=True)
         self._client = chromadb.PersistentClient(path=str(directory))
+        embedding_cache = (
+            cache_manager.embeddings
+            if cache_manager is not None and cache_manager.enabled
+            else None
+        )
         self._collection = self._client.get_or_create_collection(
             name=f"docs_{domain}",
-            embedding_function=HashingEmbeddingFunction(),
+            embedding_function=HashingEmbeddingFunction(cache=embedding_cache),
         )
 
     def add(self, chunks: list) -> int:
@@ -77,6 +83,13 @@ class ChromaStore:
         self._collection.delete(ids=ids)
         return True
 
+    def remove_scope(self, scope: str) -> int:
+        existing = self._collection.get(where={"scope": scope})
+        ids = existing.get("ids") or []
+        if ids:
+            self._collection.delete(ids=ids)
+        return len(ids)
+
     def clear(self) -> None:
         existing = self._collection.get()
         ids = existing.get("ids") or []
@@ -87,11 +100,29 @@ class ChromaStore:
         self.persisted = True
         return self.persisted
 
+    @property
+    def scope_counts(self) -> dict[str, int]:
+        existing = self._collection.get()
+        metadatas = existing.get("metadatas") or []
+        counts: dict[str, int] = {}
+        for meta in metadatas:
+            scope = (meta or {}).get("scope", DEFAULT_SCOPE)
+            counts[scope] = counts.get(scope, 0) + 1
+        return counts
+
     @staticmethod
-    def _build_where(metadata_filter: dict | None) -> dict | None:
+    def _condition(key: str, val) -> dict:
+        if isinstance(val, (list, tuple, set)):
+            return {key: {"$in": list(val)}}
+        return {key: val}
+
+    @classmethod
+    def _build_where(cls, metadata_filter: dict | None) -> dict | None:
         if not metadata_filter:
             return None
         if len(metadata_filter) == 1:
             ((key, val),) = metadata_filter.items()
-            return {key: val}
-        return {"$and": [{key: val} for key, val in metadata_filter.items()]}
+            return cls._condition(key, val)
+        return {
+            "$and": [cls._condition(key, val) for key, val in metadata_filter.items()]
+        }

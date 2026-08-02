@@ -39,4 +39,8 @@ class SelfRAGState(BaseState, total=False):
     next_agent: str
 
 
+class DeepState(BaseState, total=False):
+    orchestration: dict[str, Any]
+
+
 RAGState = BaseState

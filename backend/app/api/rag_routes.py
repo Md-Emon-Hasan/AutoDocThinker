@@ -29,6 +29,7 @@ def query(payload: QueryRequest):
             payload.rag_mode,
             payload.history,
             payload.metadata_filter,
+            payload.scope,
         )
     except (KeyError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

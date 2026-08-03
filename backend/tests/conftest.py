@@ -10,7 +10,7 @@ os.environ.setdefault("GROQ_API_KEY", "test-key-for-pytest")
 # test suite a stable token so those routes are reachable in tests.
 os.environ.setdefault("ADMIN_TOKEN", "test-admin-token-for-pytest")
 
-from unittest.mock import MagicMock, patch  # noqa: E402
+from unittest.mock import patch  # noqa: E402
 
 from app.dependencies import container  # noqa: E402
 from app.governance.audit import AuditLog  # noqa: E402

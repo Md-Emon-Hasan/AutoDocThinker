@@ -1,8 +1,6 @@
 """Consolidated tests for ALL API routes: health, domain, chat, ingestion, upload,
 index, rag, and admin endpoints."""
 
-import io
-
 import pytest
 from fastapi.testclient import TestClient
 

@@ -251,7 +251,7 @@ function StreamingAssistantBubble({ state }) {
 
 export default function ChatPage({ domains, ragModes, onNavigate, domain, ragMode, onDomainChange, onRagModeChange, sessionId, onSessionChange }) {
   const domainList = domains.length > 0 ? domains : FALLBACK_DOMAINS;
-  const setSessionId = onSessionChange;
+  const setSessionId = onSessionChange || (() => {});
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

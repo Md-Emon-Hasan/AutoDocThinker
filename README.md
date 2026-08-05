@@ -2,9 +2,9 @@
 
 [![Python](https://img.shields.io/badge/python-3.11-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org) [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![LangChain](https://img.shields.io/badge/🦜_LangChain-000000?style=for-the-badge)](https://python.langchain.com/) [![LangGraph](https://img.shields.io/badge/LangGraph-1C1C1C?style=for-the-badge&logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/) [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/) [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/) [![ChromaDB](https://img.shields.io/badge/ChromaDB-000000?style=for-the-badge&logo=chromadb&logoColor=white)](https://www.trychroma.com/) [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/) [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/) [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/) [![Groq](https://img.shields.io/badge/Groq-000000?style=for-the-badge&logo=groq&logoColor=white)](https://groq.com/) [![Version](https://img.shields.io/badge/version-4.0.0-brightgreen?style=for-the-badge)](https://github.com/Md-Emon-Hasan/AutoDocThinker)
 
-**AutoDocThinker** is an advanced **Agentic RAG (Retrieval-Augmented Generation)** system designed to bridge the gap between static documents and dynamic intelligence, solving the critical problem of information overload in data-rich environments. Built on a **Modular Monolithic Architecture** with **FastAPI, LangGraph, and ChromaDB**, the system transforms unstructured data (PDFs, Word docs, Web URLs, plain text) into an interactive knowledge base, enabling users to query complex information using natural language. Unlike traditional keyword search that fails to understand context, AutoDocThinker employs a **five-mode RAG workflow engine** — **Naive, Advanced, CRAG (Corrective RAG), Self-RAG, and Deep (planner + parallel sub-agents + synthesis)** — to adaptively route, retrieve, evaluate, and regenerate answers.
+Most teams keep their real knowledge locked inside documents nobody has time to read — contracts, medical guidelines, policy manuals, financial reports. **AutoDocThinker** turns that pile into an assistant you can simply ask a question in plain language, and get a straight answer back with the exact source it came from. It checks its own answer against the documents, keeps a record of what it did, and holds back anything it isn't sure about for a human to approve. Hours of reading become one question, each answer costs less to produce, and the result is safe to put in front of customers in fields like healthcare, law, and finance.
 
-The **Hybrid Search engine** fuses **dense vector retrieval (ChromaDB)** with **sparse BM25 indexing** via **Reciprocal Rank Fusion (RRF)**, followed by **CrossEncoder reranking**, to deliver precision-first results, and every response passes through a **Verifier Agent** for groundedness scoring and a **Governance layer** for input/output policy enforcement before it reaches the user. Seven **domain-specific presets** (Medical, Legal, Finance, Technical, Education, Customer Support, General) tune prompts, retrieval behavior, and governance strictness per use case. Multi-tenant safety is built in via **session-scoped index isolation** (no user's private upload is ever retrievable by another session), a **four-layer cache** cuts repeat LLM/embedding/rerank cost, and a **long-term + semantic memory** subsystem lets the assistant remember durable facts across a conversation. A full **chat session system** with **SSE token streaming** maintains multi-turn history and a live step-by-step view of what the pipeline is doing, with an optional **human-in-the-loop** approval gate for high-risk or low-confidence answers.
+Under the hood it is an **Agentic RAG** system on a **Modular Monolithic Architecture** built with **FastAPI, LangGraph, and ChromaDB**, ingesting PDFs, Word docs, URLs, and raw text. A **five-mode workflow engine** — **Naive, Advanced, CRAG, Self-RAG, and Deep (planner + parallel sub-agents + synthesis)** — routes each question to the cheapest path that answers it well, while **Hybrid Search** fuses **dense vector retrieval** with **BM25** through **Reciprocal Rank Fusion** and **CrossEncoder reranking**. Every answer clears a **Verifier Agent** (groundedness + citations) and a **Governance layer** (PII, prompt-injection, SSRF guards, audit trail), backed by **seven domain presets**, **session-scoped index isolation**, a **four-layer cache**, an **LLM Gateway** with ordered fallback, **long-term memory**, and a **streaming chat UI** with an optional **human-in-the-loop** gate. Together these turn a promising demo into something a business can deploy, trust, audit, and afford to run every day.
 
 
 <!-- 🎥 Project Demo Video -->
@@ -731,25 +731,6 @@ docker run -p 5000:5000 --env-file backend/.env auto-doc-thinker
 5. **Ask Questions**: Chat with your documents using natural language in the Chat page
 6. **Get AI Answers**: Responses include source citations; if no relevant documents exist, Wikipedia fallback activates automatically
 7. **Manage Index**: Use the Index page to view ingested sources or remove specific documents
-
----
-
-## **Tech Stack**
-
-| Category | Technologies |
-|----------|--------------|
-| **Backend** | FastAPI, Uvicorn, Python 3.11 |
-| **AI / LLM** | Groq API (LLaMA-3-70B), LangChain, LangGraph |
-| **LLM Gateway** | Provider abstraction with task-based model routing and ordered fallback chains (`app/llm/gateway/`) |
-| **Embeddings** | Dependency-free hashing-trick embedding function (`HashingEmbeddingFunction`), CrossEncoder reranker |
-| **Vector Database** | ChromaDB (persistent dense vector store, session-scoped isolation) |
-| **Sparse Index** | BM25 via `rank-bm25`, scope-restricted candidate pre-filtering |
-| **Hybrid Search** | Dense + Sparse fusion with Reciprocal Rank Fusion (RRF) |
-| **Caching** | Four-layer in-memory TTL cache (`cachetools`) — retrieval, answer, verification, embedding layers |
-| **Persistence** | SQLite for governance audit log, HITL queue, long-term/semantic memory, orchestration scratchpad |
-| **Web Fallback** | Wikipedia API via LangChain |
-| **Frontend** | React 18, Vite, Tailwind CSS, Vitest + React Testing Library, ESLint |
-| **DevOps** | Docker, Docker Compose, GitHub Actions, Render |
 
 ---
 
